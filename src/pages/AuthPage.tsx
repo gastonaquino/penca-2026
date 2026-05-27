@@ -121,15 +121,12 @@ export default function AuthPage({ onBack }: AuthPageProps) {
         )}
 
         <div className="text-center mb-8">
-  <img
-    src="/Copia_de_Copia_de_Cabecera.png"
-    alt="PENCA"
-    className="h-24 mx-auto object-contain mb-4"
-  />
+          <img
+            src="/Copia_de_Copia_de_Cabecera.png"
+            alt="PENCA"
+            className="h-24 mx-auto object-contain mb-4"
+          />
 
-  <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-500 via-yellow-400 to-red-500 rounded-2xl shadow-2xl mb-4 transform hover:scale-105 transition-transform">
-    <Trophy className="w-10 h-10 text-white" />
-  </div>
           <h1 className="text-4xl font-bold text-white tracking-tight">
             Penca <span className="text-yellow-400">Mundial</span>
           </h1>
