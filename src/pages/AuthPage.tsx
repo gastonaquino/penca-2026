@@ -87,6 +87,16 @@ export default function AuthPage({ onBack }: AuthPageProps) {
             .update({ is_used: true, used_by: authData.user.id })
             .eq('id', keyData.id);
         }*/
+
+        if (authData.user) {
+          await supabase
+            .from('invite_keys')
+            .update({
+              is_used: true,
+              used_by: authData.user.id
+          })
+          .eq('id', keyData.id);
+      }
       }
     } catch (err: any) {
       if (err.message?.includes('already registered')) {
