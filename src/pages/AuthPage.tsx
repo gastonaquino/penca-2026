@@ -40,7 +40,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
         const keyUpper = inviteKey.trim().toUpperCase();
 
         // Validate invite key exists and is unused
-        const { data: allKeys, error: keyError } = await supabase
+        /*const { data: allKeys, error: keyError } = await supabase
           .from('invite_keys')
           .select('*');
         
@@ -65,7 +65,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
           setError('Esta clave ya fue utilizada');
           setLoading(false);
           return;
-        }
+        }*/
 
         // Create auth user
         const { data: authData, error: authError } = await supabase.auth.signUp({
