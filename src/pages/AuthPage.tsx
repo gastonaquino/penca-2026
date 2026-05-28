@@ -98,14 +98,28 @@ export default function AuthPage({ onBack }: AuthPageProps) {
         }*/
 
         if (authData.user) {
-          await supabase
-            .from('invite_keys')
-            .update({
-              is_used: true,
-              used_by: authData.user.id
-          })
-          .eq('id', keyData.id);
-      }
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .insert({
+      id: authData.user.id,
+      username: username.trim(),
+      display_name: username.trim(),
+      is_admin: false
+    });
+
+  if (profileError) {
+    console.error(profileError);
+    throw profileError;
+  }
+
+  await supabase
+    .from('invite_keys')
+    .update({
+      is_used: true,
+      used_by: authData.user.id
+    })
+    .eq('id', keyData.id);
+}
       }
     } catch (err: any) {
       if (err.message?.includes('already registered')) {
