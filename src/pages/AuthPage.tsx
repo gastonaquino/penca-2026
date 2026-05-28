@@ -1,14 +1,22 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Trophy, Mail, Lock, User, ArrowRight, KeyRound, ArrowLeft } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  KeyRound,
+  ArrowLeft
+} from 'lucide-react';
 
 interface AuthPageProps {
   onBack?: () => void;
 }
 
 export default function AuthPage({ onBack }: AuthPageProps) {
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
+
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,76 +27,99 @@ export default function AuthPage({ onBack }: AuthPageProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     setError('');
     setLoading(true);
 
     try {
+      // LOGIN
       if (isLogin) {
         await signIn(email, password);
-      } else {
-        if (!username.trim()) {
-          setError('Ingresa tu nombre de usuario');
-          setLoading(false);
-          return;
-        }
-        if (!inviteKey.trim()) {
-          setError('Ingresa tu clave de invitación');
-          setLoading(false);
-          return;
-        }
+        return;
+      }
 
-        const keyUpper = inviteKey.trim().toUpperCase();
+      // VALIDACIONES
+      if (!username.trim()) {
+        setError('Ingresa tu nombre de usuario');
+        setLoading(false);
+        return;
+      }
 
-        // Validate invite key exists and is unused
-        const { data: keyData, error: keyError } = await supabase
-          .from('invite_keys')
-          .select('id, is_used')
-          .eq('key', keyUpper)
-          .maybeSingle();
+      if (!inviteKey.trim()) {
+        setError('Ingresa tu clave de invitación');
+        setLoading(false);
+        return;
+      }
 
-        if (keyError || !keyData) {
-          setError('Clave de invitación inválida');
-          setLoading(false);
-          return;
-        }
+      const keyUpper = inviteKey.trim().toUpperCase();
 
-        if (keyData.is_used) {
-          setError('Esta clave ya fue utilizada');
-          setLoading(false);
-          return;
-        }
+      // BUSCAR INVITE KEY
+      const { data: keyData, error: keyError } = await supabase
+        .from('invite_keys')
+        .select('*')
+        .eq('key', keyUpper)
+        .eq('is_used', false)
+        .single();
 
-        // Create auth user
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+      if (keyError || !keyData) {
+        console.error(keyError);
+
+        setError('Clave de invitación inválida');
+        setLoading(false);
+        return;
+      }
+
+      // CREAR USUARIO AUTH
+      const { data: authData, error: authError } =
+        await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { username: username.trim() },
+            data: {
+              username: username.trim(),
+            },
           },
         });
 
-        if (authError) throw authError;
-
-        // Create profile manually
-        if (authData.user) {
-          const { error: profileError } = await supabase.from('profiles').insert({
-            id: authData.user.id,
-            username: username.trim(),
-            email: email,
-            is_admin: false,
-            is_enabled: true,
-          });
-
-          if (profileError) throw profileError;
-
-          // Mark invite key as used
-          await supabase
-            .from('invite_keys')
-            .update({ is_used: true, used_by: authData.user.id })
-            .eq('id', keyData.id);
-        }
+      if (authError) {
+        throw authError;
       }
+
+      if (!authData.user) {
+        throw new Error('No se pudo crear el usuario');
+      }
+
+      // CREAR PROFILE
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          username: username.trim(),
+          display_name: username.trim(),
+          is_admin: false,
+        });
+
+      if (profileError) {
+        console.error(profileError);
+        throw profileError;
+      }
+
+      // MARCAR KEY COMO USADA
+      const { error: updateError } = await supabase
+        .from('invite_keys')
+        .update({
+          is_used: true,
+          used_by: authData.user.id,
+        })
+        .eq('id', keyData.id);
+
+      if (updateError) {
+        console.error(updateError);
+      }
+
     } catch (err: any) {
+      console.error(err);
+
       if (err.message?.includes('already registered')) {
         setError('Este email ya está registrado');
       } else if (err.message?.includes('Invalid login')) {
@@ -105,8 +136,14 @@ export default function AuthPage({ onBack }: AuthPageProps) {
     <div className="min-h-screen bg-gradient-to-br from-[#1a472a] via-[#0d1b2a] to-[#8b1a1a] flex items-center justify-center p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-green-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: '1s' }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: '2s' }}
+        />
       </div>
 
       <div className="relative w-full max-w-md">
@@ -121,13 +158,19 @@ export default function AuthPage({ onBack }: AuthPageProps) {
         )}
 
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-500 via-yellow-400 to-red-500 rounded-2xl shadow-2xl mb-4 transform hover:scale-105 transition-transform">
-            <Trophy className="w-10 h-10 text-white" />
-          </div>
+          <img
+            src="/Copia_de_Copia_de_Cabecera.png"
+            alt="PENCA"
+            className="h-24 mx-auto object-contain mb-4"
+          />
+
           <h1 className="text-4xl font-bold text-white tracking-tight">
             Penca <span className="text-yellow-400">Mundial</span>
           </h1>
-          <p className="text-gray-300 mt-2 text-lg">World Cup 2026</p>
+
+          <p className="text-gray-300 mt-2 text-lg">
+            World Cup 2026
+          </p>
         </div>
 
         <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl p-8">
@@ -138,18 +181,23 @@ export default function AuthPage({ onBack }: AuthPageProps) {
                 setError('');
               }}
               className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                isLogin ? 'bg-white text-gray-900 shadow-lg' : 'text-gray-300 hover:text-white'
+                isLogin
+                  ? 'bg-white text-gray-900 shadow-lg'
+                  : 'text-gray-300 hover:text-white'
               }`}
             >
               Ingresar
             </button>
+
             <button
               onClick={() => {
                 setIsLogin(false);
                 setError('');
               }}
               className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                !isLogin ? 'bg-white text-gray-900 shadow-lg' : 'text-gray-300 hover:text-white'
+                !isLogin
+                  ? 'bg-white text-gray-900 shadow-lg'
+                  : 'text-gray-300 hover:text-white'
               }`}
             >
               Registrarse
@@ -160,9 +208,13 @@ export default function AuthPage({ onBack }: AuthPageProps) {
             {!isLogin && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Usuario</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Usuario
+                  </label>
+
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+
                     <input
                       type="text"
                       value={username}
@@ -173,14 +225,21 @@ export default function AuthPage({ onBack }: AuthPageProps) {
                     />
                   </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1.5">Clave de invitación</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                    Clave de invitación
+                  </label>
+
                   <div className="relative">
                     <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+
                     <input
                       type="text"
                       value={inviteKey}
-                      onChange={(e) => setInviteKey(e.target.value.toUpperCase())}
+                      onChange={(e) =>
+                        setInviteKey(e.target.value.toUpperCase())
+                      }
                       className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all uppercase tracking-widest"
                       placeholder="EJ: 11R8HW"
                       required={!isLogin}
@@ -192,9 +251,13 @@ export default function AuthPage({ onBack }: AuthPageProps) {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                Email
+              </label>
+
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+
                 <input
                   type="email"
                   value={email}
@@ -207,9 +270,13 @@ export default function AuthPage({ onBack }: AuthPageProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Contraseña</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                Contraseña
+              </label>
+
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+
                 <input
                   type="password"
                   value={password}
@@ -245,7 +312,9 @@ export default function AuthPage({ onBack }: AuthPageProps) {
           </form>
         </div>
 
-        <p className="text-center text-gray-400 text-xs mt-6">FIFA World Cup 2026 - USA, Mexico & Canada</p>
+        <p className="text-center text-gray-400 text-xs mt-6">
+          FIFA World Cup 2026 - USA, Mexico & Canada
+        </p>
       </div>
     </div>
   );
