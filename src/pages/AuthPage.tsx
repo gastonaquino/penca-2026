@@ -40,12 +40,9 @@ export default function AuthPage({ onBack }: AuthPageProps) {
         const keyUpper = inviteKey.trim().toUpperCase();
 
         // Validate invite key exists and is unused
-        const { data: keyData, error: keyError } = await supabase
+        const { data: allKeys, error: keyError } = await supabase
           .from('invite_keys')
-          .select('*')
-          .ilike('key', keyUpper)
-          .eq('is_used', false)
-          .maybeSingle();
+          .select('*');
         
         if (keyError) {
           console.error(keyError);
@@ -54,8 +51,18 @@ export default function AuthPage({ onBack }: AuthPageProps) {
           return;
         }
         
+        const keyData = allKeys?.find(
+          (k) => k.key?.trim()?.toUpperCase() === keyUpper
+        );
+        
         if (!keyData) {
-          setError('Clave de invitación inválida o ya usada');
+          setError('Clave de invitación inválida');
+          setLoading(false);
+          return;
+        }
+        
+        if (keyData.is_used) {
+          setError('Esta clave ya fue utilizada');
           setLoading(false);
           return;
         }
