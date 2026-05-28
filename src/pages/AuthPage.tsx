@@ -70,7 +70,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
         if (authError) throw authError;
 
         // Create profile manually
-        if (authData.user) {
+        /*if (authData.user) {
           const { error: profileError } = await supabase.from('profiles').insert({
             id: authData.user.id,
             username: username.trim(),
@@ -86,7 +86,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
             .from('invite_keys')
             .update({ is_used: true, used_by: authData.user.id })
             .eq('id', keyData.id);
-        }
+        }*/
       }
     } catch (err: any) {
       if (err.message?.includes('already registered')) {
