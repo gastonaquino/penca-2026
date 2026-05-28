@@ -42,18 +42,20 @@ export default function AuthPage({ onBack }: AuthPageProps) {
         // Validate invite key exists and is unused
         const { data: keyData, error: keyError } = await supabase
           .from('invite_keys')
-          .select('id, is_used')
-          .eq('key', keyUpper)
+          .select('*')
+          .ilike('key', keyUpper)
+          .eq('is_used', false)
           .maybeSingle();
-
-        if (keyError || !keyData) {
-          setError('Clave de invitación inválida');
+        
+        if (keyError) {
+          console.error(keyError);
+          setError('Error verificando clave');
           setLoading(false);
           return;
         }
-
-        if (keyData.is_used) {
-          setError('Esta clave ya fue utilizada');
+        
+        if (!keyData) {
+          setError('Clave de invitación inválida o ya usada');
           setLoading(false);
           return;
         }
