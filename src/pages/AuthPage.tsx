@@ -89,20 +89,7 @@ export default function AuthPage({ onBack }: AuthPageProps) {
         throw new Error('No se pudo crear el usuario');
       }
 
-      // CREAR PROFILE
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          username: username.trim(),
-          display_name: username.trim(),
-          is_admin: false,
-        });
-
-      if (profileError) {
-        console.error(profileError);
-        throw profileError;
-      }
+      // Profile se crea automáticamente via trigger
 
       // MARCAR KEY COMO USADA
       const { error: updateError } = await supabase
