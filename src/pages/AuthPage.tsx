@@ -59,12 +59,12 @@ export default function AuthPage({ onBack }: AuthPageProps) {
         .select('*')
         .eq('key', keyUpper)
         .eq('is_used', false)
-        .single();
+        .maybeSingle();
 
       if (keyError || !keyData) {
         console.error(keyError);
 
-        setError('Clave de invitación inválida');
+        setError('Clave de invitación inválida o ya utilizada');
         setLoading(false);
         return;
       }
